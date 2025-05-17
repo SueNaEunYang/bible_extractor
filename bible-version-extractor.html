@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성경 번역본 추출기</title>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 16px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1 {
+            color: #4a6da7;
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 24px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 16px;
+            background-color: white;
+        }
+        button {
+            background-color: #4a6da7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+            margin-bottom: 16px;
+        }
+        button:hover {
+            background-color: #3a5a8f;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .result {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            background-color: #f9f9f9;
+            margin-top: 16px;
+            white-space: pre-wrap;
+            font-size: 16px;
+            min-height: 150px;
+        }
+        .version-list {
+            margin-bottom: 16px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: #777;
+        }
+        .error {
+            color: #d9534f;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>성경 번역본 추출기</h1>
+        <div>
+            <label for="input-text">성경 구절 복사본을 여기에 붙여넣기:</label>
+            <textarea id="input-text" placeholder="예시:&#10;2 Samuel 23:8&#10;(New International Version) These are the names of David's mighty warriors...&#10;(Message Bible (MSG)) This is the listing of David's top men...&#10;(개역 개정) 다윗의 용사들의 이름은 이러하니라..."></textarea>
+        </div>
+        
+        <div class="version-list">
+            <label for="version-select">추출할 번역본 선택:</label>
+            <select id="version-select">
+                <option value="개역 개정">개역 개정</option>
+                <option value="개역개정">개역개정</option>
+                <option value="New International Version">New International Version (NIV)</option>
+                <option value="Message Bible">Message Bible (MSG)</option>
+                <option value="King James Version">King James Version (KJV)</option>
+                <option value="New Living Translation">New Living Translation (NLT)</option>
+                <option value="ESV">English Standard Version (ESV)</option>
+                <option value="새번역">새번역</option>
+                <option value="현대어성경">현대어성경</option>
+                <option value="공동번역">공동번역</option>
+                <option value="쉬운성경">쉬운성경</option>
+                <option value="custom">직접 입력...</option>
+            </select>
+            <input type="text" id="custom-version" placeholder="직접 번역본 이름 입력" style="display: none; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; margin-top: 8px; box-sizing: border-box;">
+        </div>
+        
+        <div class="action-buttons">
+            <button id="extract-btn">추출하기</button>
+            <button id="copy-btn">결과 복사</button>
+            <button id="clear-btn">모두 지우기</button>
+        </div>
+        
+        <div>
+            <label for="result">추출 결과:</label>
+            <div id="result" class="result"></div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 성경 번역본 추출기</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputText = document.getElementById('input-text');
+            const versionSelect = document.getElementById('version-select');
+            const customVersionInput = document.getElementById('custom-version');
+            const extractBtn = document.getElementById('extract-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const resultDiv = document.getElementById('result');
+            
+            // 직접 입력 옵션 처리
+            versionSelect.addEventListener('change', function() {
+                customVersionInput.style.display = this.value === 'custom' ? 'block' : 'none';
+            });
+            
+            // 추출 버튼 클릭 이벤트
+            extractBtn.addEventListener('click', function() {
+                const text = inputText.value.trim();
+                if (!text) {
+                    resultDiv.textContent = '입력 텍스트가 없습니다.';
+                    resultDiv.classList.add('error');
+                    return;
+                }
+                
+                let selectedVersion = versionSelect.value;
+                if (selectedVersion === 'custom') {
+                    selectedVersion = customVersionInput.value.trim();
+                    if (!selectedVersion) {
+                        resultDiv.textContent = '번역본 이름을 입력해주세요.';
+                        resultDiv.classList.add('error');
+                        return;
+                    }
+                }
+                
+                resultDiv.classList.remove('error');
+                const extractedText = extractVersion(text, selectedVersion);
+                resultDiv.textContent = extractedText;
+            });
+            
+            // 복사 버튼 클릭 이벤트
+            copyBtn.addEventListener('click', function() {
+                const text = resultDiv.textContent;
+                if (!text) return;
+                
+                navigator.clipboard.writeText(text)
+                    .then(() => {
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = '복사 완료!';
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('클립보드 복사 실패:', err);
+                        // 대체 복사 방법
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = '복사 완료!';
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                        }, 2000);
+                    });
+            });
+            
+            // 지우기 버튼 클릭 이벤트
+            clearBtn.addEventListener('click', function() {
+                inputText.value = '';
+                resultDiv.textContent = '';
+                resultDiv.classList.remove('error');
+            });
+            
+            // 번역본 추출 함수
+            function extractVersion(text, version) {
+                // 줄 단위로 분리
+                const lines = text.split('\n');
+                
+                let currentChapter = '';
+                let currentVerse = '';
+                let extractedVerses = [];
+                let foundVerses = {};
+                
+                // 각 줄 처리
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    
+                    // 빈 줄 스킵
+                    if (!line) continue;
+                    
+                    // 성경 장절 참조 패턴 찾기
+                    const referenceMatch = line.match(/(\d+\s*[A-Za-z]+\s*\d+:\d+)/);
+                    
+                    if (referenceMatch) {
+                        // 새로운 절 참조 발견
+                        const reference = referenceMatch[1];
+                        
+                        // 참조에서 장과 절 추출
+                        const refParts = reference.match(/(\d+\s*[A-Za-z]+\s*\d+):(\d+)/);
+                        if (refParts) {
+                            const chapterRef = refParts[1].trim();
+                            const verseNum = refParts[2].trim();
+                            
+                            // 장 참조 저장
+                            if (chapterRef !== currentChapter) {
+                                currentChapter = chapterRef;
+                            }
+                            
+                            currentVerse = verseNum;
+                        }
+                    } 
+                    // 번역본 행 찾기
+                    else if (line.includes(`(${version})`) || line.includes(`(${version} `) || line.startsWith(`(${version})`) || line.startsWith(`(${version} `)) {
+                        // 선택한 번역본 행 찾음
+                        const verseParts = line.split(')');
+                        if (verseParts.length > 1) {
+                            let verseText = verseParts.slice(1).join(')').trim();
+                            
+                            // 장절 참조가 있고, 아직 처리되지 않은 경우
+                            if (currentChapter && currentVerse && !foundVerses[currentVerse]) {
+                                foundVerses[currentVerse] = true;
+                                
+                                // 정리된 형식으로 추가
+                                const chapterName = getKoreanChapterName(currentChapter);
+                                extractedVerses.push({
+                                    chapter: chapterName,
+                                    verse: currentVerse,
+                                    text: verseText
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                // 추출된 내용 정리
+                let result = '';
+                let lastChapter = '';
+                
+                extractedVerses.forEach(item => {
+                    if (item.chapter !== lastChapter) {
+                        if (lastChapter) {
+                            result += '\n\n';
+                        }
+                        result += item.chapter + '\n';
+                        lastChapter = item.chapter;
+                    }
+                    result += item.verse + ' ' + item.text + '\n';
+                });
+                
+                return result || '선택한 번역본의 구절을 찾을 수 없습니다.';
+            }
+            
+            // 영문 장 참조를 한글로 변환
+            function getKoreanChapterName(chapterRef) {
+                // 예: "2 Samuel 23" -> "사무엘하 23장"
+                const englishToKorean = {
+                    'Genesis': '창세기',
+                    'Exodus': '출애굽기',
+                    'Leviticus': '레위기',
+                    'Numbers': '민수기',
+                    'Deuteronomy': '신명기',
+                    'Joshua': '여호수아',
+                    'Judges': '사사기',
+                    'Ruth': '룻기',
+                    '1 Samuel': '사무엘상',
+                    '2 Samuel': '사무엘하',
+                    '1 Kings': '열왕기상',
+                    '2 Kings': '열왕기하',
+                    '1 Chronicles': '역대상',
+                    '2 Chronicles': '역대하',
+                    'Ezra': '에스라',
+                    'Nehemiah': '느헤미야',
+                    'Esther': '에스더',
+                    'Job': '욥기',
+                    'Psalm': '시편',
+                    'Psalms': '시편',
+                    'Proverbs': '잠언',
+                    'Ecclesiastes': '전도서',
+                    'Song of Solomon': '아가',
+                    'Song of Songs': '아가',
+                    'Isaiah': '이사야',
+                    'Jeremiah': '예레미야',
+                    'Lamentations': '예레미야애가',
+                    'Ezekiel': '에스겔',
+                    'Daniel': '다니엘',
+                    'Hosea': '호세아',
+                    'Joel': '요엘',
+                    'Amos': '아모스',
+                    'Obadiah': '오바댜',
+                    'Jonah': '요나',
+                    'Micah': '미가',
+                    'Nahum': '나훔',
+                    'Habakkuk': '하박국',
+                    'Zephaniah': '스바냐',
+                    'Haggai': '학개',
+                    'Zechariah': '스가랴',
+                    'Malachi': '말라기',
+                    'Matthew': '마태복음',
+                    'Mark': '마가복음',
+                    'Luke': '누가복음',
+                    'John': '요한복음',
+                    'Acts': '사도행전',
+                    'Romans': '로마서',
+                    '1 Corinthians': '고린도전서',
+                    '2 Corinthians': '고린도후서',
+                    'Galatians': '갈라디아서',
+                    'Ephesians': '에베소서',
+                    'Philippians': '빌립보서',
+                    'Colossians': '골로새서',
+                    '1 Thessalonians': '데살로니가전서',
+                    '2 Thessalonians': '데살로니가후서',
+                    '1 Timothy': '디모데전서',
+                    '2 Timothy': '디모데후서',
+                    'Titus': '디도서',
+                    'Philemon': '빌레몬서',
+                    'Hebrews': '히브리서',
+                    'James': '야고보서',
+                    '1 Peter': '베드로전서',
+                    '2 Peter': '베드로후서',
+                    '1 John': '요한일서',
+                    '2 John': '요한이서',
+                    '3 John': '요한삼서',
+                    'Jude': '유다서',
+                    'Revelation': '요한계시록',
+                    'Revelations': '요한계시록'
+                };
+                
+                let koreanName = chapterRef;
+                
+                // 영문 성경 책 이름 찾기
+                for (const engName in englishToKorean) {
+                    if (chapterRef.includes(engName)) {
+                        const chapter = chapterRef.replace(engName, '').trim();
+                        koreanName = englishToKorean[engName] + ' ' + chapter + '장';
+                        break;
+                    }
+                }
+                
+                // 이미 한글인 경우 '장' 추가
+                if (koreanName === chapterRef && /[가-힣]/.test(koreanName)) {
+                    const parts = koreanName.split(' ');
+                    if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
+                        parts[parts.length - 1] += '장';
+                        koreanName = parts.join(' ');
+                    }
+                }
+                
+                return koreanName;
+            }
+            
+            // 예시 데이터가 있으면 자동으로 로드
+            const sampleData = `2 Samuel 23:8
+(New International Version) These are the names of David's mighty warriors: Josheb-Basshebeth, a Tahkemonite, was chief of the Three; he raised his spear against eight hundred men, whom he killed in one encounter.
+(Message Bible (MSG)) This is the listing of David's top men. Josheb-Basshebeth, the Tahkemonite. He was chief of the Three. He once put his spear to work against eight hundred - killed them all in a day.
+(개역 개정) 다윗의 용사들의 이름은 이러하니라 다그몬 사람 요셉밧세벳이라고도 하고 에센 사람 아디노라고도 하는 자는 군지휘관의 두목이라 그가 단번에 팔백 명을 쳐죽였더라
+2 Samuel 23:9
+(New International Version) Next to him was Eleazar son of Dodai the Ahohite. As one of the three mighty warriors, he was with David when they taunted the Philistines gathered at Pas Dammim for battle. Then the Israelites retreated,
+(Message Bible (MSG)) Eleazar son of Dodai the Ahohite was the next of the elite Three. He was with David when the Philistines poked fun at them at Pas Dammim. When the Philistines drew up for battle, Israel retreated.
+(개역 개정) 그 다음은 아호아 사람 도대의 아들 엘르아살이니 다윗과 함께 한 세 용사 중의 한 사람이라 블레셋 사람들이 싸우려고 거기에 모이매 이스라엘 사람들이 물러간지라 세 용사가 싸움을 돋우고`;
+            
+            if (!inputText.value) {
+                inputText.value = sampleData;
+            }
+        });
+    </script>
+</body>
+</html>
