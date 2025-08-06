@@ -108,19 +108,9 @@
             <label for="version-select">추출할 번역본 선택:</label>
             <select id="version-select">
                 <option value="개역 개정">개역 개정</option>
-                <option value="개역개정">개역개정</option>
-                <option value="New International Version">New International Version (NIV)</option>
                 <option value="Message Bible">Message Bible (MSG)</option>
-                <option value="King James Version">King James Version (KJV)</option>
-                <option value="New Living Translation">New Living Translation (NLT)</option>
-                <option value="ESV">English Standard Version (ESV)</option>
-                <option value="새번역">새번역</option>
-                <option value="현대어성경">현대어성경</option>
-                <option value="공동번역">공동번역</option>
-                <option value="쉬운성경">쉬운성경</option>
-                <option value="custom">직접 입력...</option>
+                <option value="New International Version">New International Version (NIV)</option>
             </select>
-            <input type="text" id="custom-version" placeholder="직접 번역본 이름 입력" style="display: none; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; margin-top: 8px; box-sizing: border-box;">
         </div>
         
         <div class="action-buttons">
@@ -149,10 +139,7 @@
             const clearBtn = document.getElementById('clear-btn');
             const resultDiv = document.getElementById('result');
             
-            // 직접 입력 옵션 처리
-            versionSelect.addEventListener('change', function() {
-                customVersionInput.style.display = this.value === 'custom' ? 'block' : 'none';
-            });
+            // 직접 입력 옵션 제거됨
             
             // 추출 버튼 클릭 이벤트
             extractBtn.addEventListener('click', function() {
@@ -163,15 +150,7 @@
                     return;
                 }
                 
-                let selectedVersion = versionSelect.value;
-                if (selectedVersion === 'custom') {
-                    selectedVersion = customVersionInput.value.trim();
-                    if (!selectedVersion) {
-                        resultDiv.textContent = '번역본 이름을 입력해주세요.';
-                        resultDiv.classList.add('error');
-                        return;
-                    }
-                }
+                const selectedVersion = versionSelect.value;
                 
                 resultDiv.classList.remove('error');
                 const extractedText = extractVersion(text, selectedVersion);
@@ -221,10 +200,8 @@
                 // 줄 단위로 분리
                 const lines = text.split('\n');
                 
-                let currentChapter = '';
-                let currentVerse = '';
                 let extractedVerses = [];
-                let foundVerses = {};
+                let currentReference = '';
                 
                 // 각 줄 처리
                 for (let i = 0; i < lines.length; i++) {
@@ -233,26 +210,12 @@
                     // 빈 줄 스킵
                     if (!line) continue;
                     
-                    // 성경 장절 참조 패턴 찾기
-                    const referenceMatch = line.match(/(\d+\s*[A-Za-z]+\s*\d+:\d+)/);
+                    // 성경 장절 참조 패턴 찾기 (더 넓은 범위의 패턴 매칭)
+                    const referenceMatch = line.match(/^([0-9]*\s*[A-Za-z가-힣\s]+\d+:\d+)/);
                     
                     if (referenceMatch) {
                         // 새로운 절 참조 발견
-                        const reference = referenceMatch[1];
-                        
-                        // 참조에서 장과 절 추출
-                        const refParts = reference.match(/(\d+\s*[A-Za-z]+\s*\d+):(\d+)/);
-                        if (refParts) {
-                            const chapterRef = refParts[1].trim();
-                            const verseNum = refParts[2].trim();
-                            
-                            // 장 참조 저장
-                            if (chapterRef !== currentChapter) {
-                                currentChapter = chapterRef;
-                            }
-                            
-                            currentVerse = verseNum;
-                        }
+                        currentReference = referenceMatch[1].trim();
                     } 
                     // 번역본 행 찾기
                     else if (line.includes(`(${version})`) || line.includes(`(${version} `) || line.startsWith(`(${version})`) || line.startsWith(`(${version} `)) {
@@ -261,136 +224,180 @@
                         if (verseParts.length > 1) {
                             let verseText = verseParts.slice(1).join(')').trim();
                             
-                            // 장절 참조가 있고, 아직 처리되지 않은 경우
-                            if (currentChapter && currentVerse && !foundVerses[currentVerse]) {
-                                foundVerses[currentVerse] = true;
-                                
-                                // 정리된 형식으로 추가
-                                const chapterName = getKoreanChapterName(currentChapter);
-                                extractedVerses.push({
-                                    chapter: chapterName,
-                                    verse: currentVerse,
-                                    text: verseText
-                                });
+                            if (currentReference && verseText) {
+                                // 참조에서 장과 절 추출
+                                const refParts = currentReference.match(/([0-9]*\s*[A-Za-z가-힣\s]+\d+):(\d+)/);
+                                if (refParts) {
+                                    const chapterRef = refParts[1].trim();
+                                    const verseNum = refParts[2].trim();
+                                    
+                                    extractedVerses.push({
+                                        fullReference: currentReference,
+                                        chapter: chapterRef,
+                                        verse: verseNum,
+                                        text: verseText
+                                    });
+                                }
                             }
                         }
                     }
                 }
                 
-                // 추출된 내용 정리
-                let result = '';
-                let lastChapter = '';
+                if (extractedVerses.length === 0) {
+                    return '선택한 번역본의 구절을 찾을 수 없습니다.';
+                }
                 
-                extractedVerses.forEach(item => {
-                    if (item.chapter !== lastChapter) {
-                        if (lastChapter) {
-                            result += '\n\n';
-                        }
-                        result += item.chapter + '\n';
-                        lastChapter = item.chapter;
-                    }
-                    result += item.verse + ' ' + item.text + '\n';
-                });
-                
-                return result || '선택한 번역본의 구절을 찾을 수 없습니다.';
+                // 결과 포맷팅
+                if (extractedVerses.length === 1) {
+                    // 구절이 하나일 때
+                    const verse = extractedVerses[0];
+                    const koreanChapter = getKoreanChapterName(verse.chapter);
+                    return `[${koreanChapter}:${verse.verse}, ${version}] ${verse.text}`;
+                } else {
+                    // 구절이 여러 개일 때
+                    const firstVerse = extractedVerses[0];
+                    const lastVerse = extractedVerses[extractedVerses.length - 1];
+                    const koreanChapter = getKoreanChapterName(firstVerse.chapter);
+                    
+                    let result = `[${koreanChapter}:${firstVerse.verse}-${lastVerse.verse}, ${version}]\n`;
+                    
+                    extractedVerses.forEach(verse => {
+                        result += `${verse.verse} ${verse.text}\n`;
+                    });
+                    
+                    return result.trim();
+                }
             }
             
             // 영문 장 참조를 한글로 변환
             function getKoreanChapterName(chapterRef) {
-                // 예: "2 Samuel 23" -> "사무엘하 23장"
                 const englishToKorean = {
-                    'Genesis': '창세기',
-                    'Exodus': '출애굽기',
-                    'Leviticus': '레위기',
-                    'Numbers': '민수기',
-                    'Deuteronomy': '신명기',
-                    'Joshua': '여호수아',
-                    'Judges': '사사기',
-                    'Ruth': '룻기',
-                    '1 Samuel': '사무엘상',
-                    '2 Samuel': '사무엘하',
-                    '1 Kings': '열왕기상',
-                    '2 Kings': '열왕기하',
-                    '1 Chronicles': '역대상',
-                    '2 Chronicles': '역대하',
-                    'Ezra': '에스라',
-                    'Nehemiah': '느헤미야',
-                    'Esther': '에스더',
-                    'Job': '욥기',
-                    'Psalm': '시편',
-                    'Psalms': '시편',
-                    'Proverbs': '잠언',
-                    'Ecclesiastes': '전도서',
-                    'Song of Solomon': '아가',
-                    'Song of Songs': '아가',
-                    'Isaiah': '이사야',
-                    'Jeremiah': '예레미야',
-                    'Lamentations': '예레미야애가',
-                    'Ezekiel': '에스겔',
-                    'Daniel': '다니엘',
-                    'Hosea': '호세아',
-                    'Joel': '요엘',
-                    'Amos': '아모스',
-                    'Obadiah': '오바댜',
-                    'Jonah': '요나',
-                    'Micah': '미가',
-                    'Nahum': '나훔',
-                    'Habakkuk': '하박국',
-                    'Zephaniah': '스바냐',
-                    'Haggai': '학개',
-                    'Zechariah': '스가랴',
-                    'Malachi': '말라기',
-                    'Matthew': '마태복음',
-                    'Mark': '마가복음',
-                    'Luke': '누가복음',
-                    'John': '요한복음',
-                    'Acts': '사도행전',
-                    'Romans': '로마서',
-                    '1 Corinthians': '고린도전서',
-                    '2 Corinthians': '고린도후서',
-                    'Galatians': '갈라디아서',
-                    'Ephesians': '에베소서',
-                    'Philippians': '빌립보서',
-                    'Colossians': '골로새서',
-                    '1 Thessalonians': '데살로니가전서',
-                    '2 Thessalonians': '데살로니가후서',
-                    '1 Timothy': '디모데전서',
-                    '2 Timothy': '디모데후서',
-                    'Titus': '디도서',
-                    'Philemon': '빌레몬서',
-                    'Hebrews': '히브리서',
-                    'James': '야고보서',
-                    '1 Peter': '베드로전서',
-                    '2 Peter': '베드로후서',
-                    '1 John': '요한일서',
-                    '2 John': '요한이서',
-                    '3 John': '요한삼서',
-                    'Jude': '유다서',
-                    'Revelation': '요한계시록',
-                    'Revelations': '요한계시록'
+                    'genesis': '창세기',
+                    'exodus': '출애굽기',
+                    'leviticus': '레위기',
+                    'numbers': '민수기',
+                    'deuteronomy': '신명기',
+                    'joshua': '여호수아',
+                    'judges': '사사기',
+                    'ruth': '룻기',
+                    'samuel': '사무엘',
+                    'kings': '열왕기',
+                    'chronicles': '역대',
+                    'ezra': '에스라',
+                    'nehemiah': '느헤미야',
+                    'esther': '에스더',
+                    'job': '욥기',
+                    'psalm': '시편',
+                    'psalms': '시편',
+                    'proverbs': '잠언',
+                    'ecclesiastes': '전도서',
+                    'song of solomon': '아가',
+                    'song of songs': '아가',
+                    'isaiah': '이사야',
+                    'jeremiah': '예레미야',
+                    'lamentations': '예레미야애가',
+                    'ezekiel': '에스겔',
+                    'daniel': '다니엘',
+                    'hosea': '호세아',
+                    'joel': '요엘',
+                    'amos': '아모스',
+                    'obadiah': '오바댜',
+                    'jonah': '요나',
+                    'micah': '미가',
+                    'nahum': '나훔',
+                    'habakkuk': '하박국',
+                    'zephaniah': '스바냐',
+                    'haggai': '학개',
+                    'zechariah': '스가랴',
+                    'malachi': '말라기',
+                    'matthew': '마태복음',
+                    'mark': '마가복음',
+                    'luke': '누가복음',
+                    'john': '요한복음',
+                    'acts': '사도행전',
+                    'romans': '로마서',
+                    'corinthians': '고린도',
+                    'galatians': '갈라디아서',
+                    'ephesians': '에베소서',
+                    'philippians': '빌립보서',
+                    'colossians': '골로새서',
+                    'thessalonians': '데살로니가',
+                    'timothy': '디모데',
+                    'titus': '디도서',
+                    'philemon': '빌레몬서',
+                    'hebrews': '히브리서',
+                    'james': '야고보서',
+                    'peter': '베드로',
+                    'jude': '유다서',
+                    'revelation': '요한계시록',
+                    'revelations': '요한계시록'
                 };
                 
-                let koreanName = chapterRef;
+                // 소문자로 변환하여 검색
+                const lowerChapterRef = chapterRef.toLowerCase();
                 
-                // 영문 성경 책 이름 찾기
-                for (const engName in englishToKorean) {
-                    if (chapterRef.includes(engName)) {
-                        const chapter = chapterRef.replace(engName, '').trim();
-                        koreanName = englishToKorean[engName] + ' ' + chapter + '장';
-                        break;
+                // 숫자와 영문 이름 분리
+                const match = lowerChapterRef.match(/^(\d*)\s*([a-z\s]+)\s*(\d+)$/);
+                if (match) {
+                    const bookNumber = match[1];
+                    const bookName = match[2].trim();
+                    const chapter = match[3];
+                    
+                    // 영문 책 이름을 한글로 변환
+                    let koreanBookName = null;
+                    
+                    // 정확한 매칭 먼저 시도
+                    for (const [eng, kor] of Object.entries(englishToKorean)) {
+                        if (bookName === eng) {
+                            koreanBookName = kor;
+                            break;
+                        }
+                    }
+                    
+                    // 부분 매칭 시도
+                    if (!koreanBookName) {
+                        for (const [eng, kor] of Object.entries(englishToKorean)) {
+                            if (bookName.includes(eng) || eng.includes(bookName)) {
+                                koreanBookName = kor;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (koreanBookName) {
+                        // 숫자가 있는 경우 (예: 1 Samuel -> 사무엘상)
+                        if (bookNumber) {
+                            if (koreanBookName === '사무엘') {
+                                return bookNumber === '1' ? '사무엘상 ' + chapter : '사무엘하 ' + chapter;
+                            } else if (koreanBookName === '열왕기') {
+                                return bookNumber === '1' ? '열왕기상 ' + chapter : '열왕기하 ' + chapter;
+                            } else if (koreanBookName === '역대') {
+                                return bookNumber === '1' ? '역대상 ' + chapter : '역대하 ' + chapter;
+                            } else if (koreanBookName === '고린도') {
+                                return bookNumber === '1' ? '고린도전서 ' + chapter : '고린도후서 ' + chapter;
+                            } else if (koreanBookName === '데살로니가') {
+                                return bookNumber === '1' ? '데살로니가전서 ' + chapter : '데살로니가후서 ' + chapter;
+                            } else if (koreanBookName === '디모데') {
+                                return bookNumber === '1' ? '디모데전서 ' + chapter : '디모데후서 ' + chapter;
+                            } else if (koreanBookName === '베드로') {
+                                return bookNumber === '1' ? '베드로전서 ' + chapter : '베드로후서 ' + chapter;
+                            } else {
+                                return koreanBookName + bookNumber + ' ' + chapter;
+                            }
+                        } else {
+                            return koreanBookName + ' ' + chapter;
+                        }
                     }
                 }
                 
-                // 이미 한글인 경우 '장' 추가
-                if (koreanName === chapterRef && /[가-힣]/.test(koreanName)) {
-                    const parts = koreanName.split(' ');
-                    if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
-                        parts[parts.length - 1] += '장';
-                        koreanName = parts.join(' ');
-                    }
+                // 변환에 실패한 경우, 원본 텍스트에서 장 번호만 추출
+                const chapterMatch = chapterRef.match(/(\d+)$/);
+                if (chapterMatch) {
+                    return chapterRef.replace(/(\d+)$/, chapterMatch[1]);
                 }
                 
-                return koreanName;
+                // 모든 변환에 실패한 경우 원본 반환
+                return chapterRef;
             }
             
             // 예시 데이터가 있으면 자동으로 로드
