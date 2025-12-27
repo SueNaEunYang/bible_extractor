@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,25 +13,29 @@
             background-color: #f5f5f5;
             color: #333;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
             background-color: white;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             padding: 20px;
         }
+
         h1 {
             color: #4a6da7;
             text-align: center;
             margin-bottom: 24px;
             font-size: 24px;
         }
+
         label {
             display: block;
             margin-bottom: 8px;
             font-weight: bold;
         }
+
         textarea {
             width: 100%;
             height: 200px;
@@ -41,6 +46,7 @@
             font-size: 16px;
             box-sizing: border-box;
         }
+
         select {
             width: 100%;
             padding: 12px;
@@ -50,6 +56,7 @@
             font-size: 16px;
             background-color: white;
         }
+
         button {
             background-color: #4a6da7;
             color: white;
@@ -62,15 +69,18 @@
             margin: 0 auto;
             margin-bottom: 16px;
         }
+
         button:hover {
             background-color: #3a5a8f;
         }
+
         .action-buttons {
             display: flex;
             justify-content: center;
             gap: 16px;
             margin-bottom: 16px;
         }
+
         .result {
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -81,29 +91,34 @@
             font-size: 16px;
             min-height: 150px;
         }
+
         .version-list {
             margin-bottom: 16px;
         }
+
         .footer {
             text-align: center;
             margin-top: 24px;
             font-size: 14px;
             color: #777;
         }
+
         .error {
             color: #d9534f;
             margin-bottom: 16px;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>성경 번역본 추출기</h1>
         <div>
             <label for="input-text">성경 구절 복사본을 여기에 붙여넣기:</label>
-            <textarea id="input-text" placeholder="예시:&#10;2 Samuel 23:8&#10;(New International Version) These are the names of David's mighty warriors...&#10;(Message Bible (MSG)) This is the listing of David's top men...&#10;(개역 개정) 다윗의 용사들의 이름은 이러하니라..."></textarea>
+            <textarea id="input-text"
+                placeholder="예시:&#10;2 Samuel 23:8&#10;(New International Version) These are the names of David's mighty warriors...&#10;(Message Bible (MSG)) This is the listing of David's top men...&#10;(개역 개정) 다윗의 용사들의 이름은 이러하니라..."></textarea>
         </div>
-        
+
         <div class="version-list">
             <label for="version-select">추출할 번역본 선택:</label>
             <select id="version-select">
@@ -112,25 +127,25 @@
                 <option value="New International Version">New International Version (NIV)</option>
             </select>
         </div>
-        
+
         <div class="action-buttons">
             <button id="extract-btn">추출하기</button>
             <button id="copy-btn">결과 복사</button>
             <button id="clear-btn">모두 지우기</button>
         </div>
-        
+
         <div>
             <label for="result">추출 결과:</label>
             <div id="result" class="result"></div>
         </div>
-        
+
         <div class="footer">
             <p>© 2025 성경 번역본 추출기</p>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const inputText = document.getElementById('input-text');
             const versionSelect = document.getElementById('version-select');
             const customVersionInput = document.getElementById('custom-version');
@@ -138,30 +153,30 @@
             const copyBtn = document.getElementById('copy-btn');
             const clearBtn = document.getElementById('clear-btn');
             const resultDiv = document.getElementById('result');
-            
+
             // 직접 입력 옵션 제거됨
-            
+
             // 추출 버튼 클릭 이벤트
-            extractBtn.addEventListener('click', function() {
+            extractBtn.addEventListener('click', function () {
                 const text = inputText.value.trim();
                 if (!text) {
                     resultDiv.textContent = '입력 텍스트가 없습니다.';
                     resultDiv.classList.add('error');
                     return;
                 }
-                
+
                 const selectedVersion = versionSelect.value;
-                
+
                 resultDiv.classList.remove('error');
                 const extractedText = extractVersion(text, selectedVersion);
                 resultDiv.textContent = extractedText;
             });
-            
+
             // 복사 버튼 클릭 이벤트
-            copyBtn.addEventListener('click', function() {
+            copyBtn.addEventListener('click', function () {
                 const text = resultDiv.textContent;
                 if (!text) return;
-                
+
                 navigator.clipboard.writeText(text)
                     .then(() => {
                         const originalText = copyBtn.textContent;
@@ -179,7 +194,7 @@
                         textarea.select();
                         document.execCommand('copy');
                         document.body.removeChild(textarea);
-                        
+
                         const originalText = copyBtn.textContent;
                         copyBtn.textContent = '복사 완료!';
                         setTimeout(() => {
@@ -187,50 +202,50 @@
                         }, 2000);
                     });
             });
-            
+
             // 지우기 버튼 클릭 이벤트
-            clearBtn.addEventListener('click', function() {
+            clearBtn.addEventListener('click', function () {
                 inputText.value = '';
                 resultDiv.textContent = '';
                 resultDiv.classList.remove('error');
             });
-            
+
             // 번역본 추출 함수
             function extractVersion(text, version) {
                 // 줄 단위로 분리
                 const lines = text.split('\n');
-                
+
                 let extractedVerses = [];
                 let currentReference = '';
-                
+
                 // 각 줄 처리
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
-                    
+
                     // 빈 줄 스킵
                     if (!line) continue;
-                    
+
                     // 성경 장절 참조 패턴 찾기 (더 넓은 범위의 패턴 매칭)
                     const referenceMatch = line.match(/^([0-9]*\s*[A-Za-z가-힣\s]+\d+:\d+)/);
-                    
+
                     if (referenceMatch) {
                         // 새로운 절 참조 발견
                         currentReference = referenceMatch[1].trim();
-                    } 
+                    }
                     // 번역본 행 찾기
                     else if (line.includes(`(${version})`) || line.includes(`(${version} `) || line.startsWith(`(${version})`) || line.startsWith(`(${version} `)) {
                         // 선택한 번역본 행 찾음
                         const verseParts = line.split(')');
                         if (verseParts.length > 1) {
                             let verseText = verseParts.slice(1).join(')').trim();
-                            
+
                             if (currentReference && verseText) {
                                 // 참조에서 장과 절 추출
                                 const refParts = currentReference.match(/([0-9]*\s*[A-Za-z가-힣\s]+\d+):(\d+)/);
                                 if (refParts) {
                                     const chapterRef = refParts[1].trim();
                                     const verseNum = refParts[2].trim();
-                                    
+
                                     extractedVerses.push({
                                         fullReference: currentReference,
                                         chapter: chapterRef,
@@ -242,11 +257,11 @@
                         }
                     }
                 }
-                
+
                 if (extractedVerses.length === 0) {
                     return '선택한 번역본의 구절을 찾을 수 없습니다.';
                 }
-                
+
                 // 결과 포맷팅
                 if (extractedVerses.length === 1) {
                     // 구절이 하나일 때
@@ -258,17 +273,17 @@
                     const firstVerse = extractedVerses[0];
                     const lastVerse = extractedVerses[extractedVerses.length - 1];
                     const koreanChapter = getKoreanChapterName(firstVerse.chapter);
-                    
+
                     let result = `[${koreanChapter}:${firstVerse.verse}-${lastVerse.verse}, ${version}]\n`;
-                    
+
                     extractedVerses.forEach(verse => {
                         result += `${verse.verse} ${verse.text}\n`;
                     });
-                    
+
                     return result.trim();
                 }
             }
-            
+
             // 영문 장 참조를 한글로 변환
             function getKoreanChapterName(chapterRef) {
                 const englishToKorean = {
@@ -332,20 +347,20 @@
                     'revelation': '요한계시록',
                     'revelations': '요한계시록'
                 };
-                
+
                 // 소문자로 변환하여 검색
                 const lowerChapterRef = chapterRef.toLowerCase();
-                
+
                 // 숫자와 영문 이름 분리
                 const match = lowerChapterRef.match(/^(\d*)\s*([a-z\s]+)\s*(\d+)$/);
                 if (match) {
                     const bookNumber = match[1];
                     const bookName = match[2].trim();
                     const chapter = match[3];
-                    
+
                     // 영문 책 이름을 한글로 변환
                     let koreanBookName = null;
-                    
+
                     // 정확한 매칭 먼저 시도
                     for (const [eng, kor] of Object.entries(englishToKorean)) {
                         if (bookName === eng) {
@@ -353,7 +368,7 @@
                             break;
                         }
                     }
-                    
+
                     // 부분 매칭 시도
                     if (!koreanBookName) {
                         for (const [eng, kor] of Object.entries(englishToKorean)) {
@@ -363,7 +378,7 @@
                             }
                         }
                     }
-                    
+
                     if (koreanBookName) {
                         // 숫자가 있는 경우 (예: 1 Samuel -> 사무엘상)
                         if (bookNumber) {
@@ -381,6 +396,12 @@
                                 return bookNumber === '1' ? '디모데전서 ' + chapter : '디모데후서 ' + chapter;
                             } else if (koreanBookName === '베드로') {
                                 return bookNumber === '1' ? '베드로전서 ' + chapter : '베드로후서 ' + chapter;
+                            } else if (koreanBookName === '요한복음') {
+                                // John 예외 처리: 숫자가 있으면 요한일/이/삼서
+                                if (bookNumber === '1') return '요한일서 ' + chapter;
+                                if (bookNumber === '2') return '요한이서 ' + chapter;
+                                if (bookNumber === '3') return '요한삼서 ' + chapter;
+                                return '요한복음 ' + chapter; // Fallback
                             } else {
                                 return koreanBookName + bookNumber + ' ' + chapter;
                             }
@@ -389,17 +410,17 @@
                         }
                     }
                 }
-                
+
                 // 변환에 실패한 경우, 원본 텍스트에서 장 번호만 추출
                 const chapterMatch = chapterRef.match(/(\d+)$/);
                 if (chapterMatch) {
                     return chapterRef.replace(/(\d+)$/, chapterMatch[1]);
                 }
-                
+
                 // 모든 변환에 실패한 경우 원본 반환
                 return chapterRef;
             }
-            
+
             // 예시 데이터가 있으면 자동으로 로드
             const sampleData = `2 Samuel 23:8
 (New International Version) These are the names of David's mighty warriors: Josheb-Basshebeth, a Tahkemonite, was chief of the Three; he raised his spear against eight hundred men, whom he killed in one encounter.
@@ -409,11 +430,12 @@
 (New International Version) Next to him was Eleazar son of Dodai the Ahohite. As one of the three mighty warriors, he was with David when they taunted the Philistines gathered at Pas Dammim for battle. Then the Israelites retreated,
 (Message Bible (MSG)) Eleazar son of Dodai the Ahohite was the next of the elite Three. He was with David when the Philistines poked fun at them at Pas Dammim. When the Philistines drew up for battle, Israel retreated.
 (개역 개정) 그 다음은 아호아 사람 도대의 아들 엘르아살이니 다윗과 함께 한 세 용사 중의 한 사람이라 블레셋 사람들이 싸우려고 거기에 모이매 이스라엘 사람들이 물러간지라 세 용사가 싸움을 돋우고`;
-            
+
             if (!inputText.value) {
                 inputText.value = sampleData;
             }
         });
     </script>
 </body>
+
 </html>
